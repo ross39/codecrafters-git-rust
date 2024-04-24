@@ -17,7 +17,7 @@ fn main() {
         if args[2] == "-p" {
             let sha = &args[3];
             let content = read_blob_object(sha);
-            println!("{}", content);
+            print!("{}", content);
         }
     }
 }

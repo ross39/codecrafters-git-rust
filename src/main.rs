@@ -4,10 +4,8 @@ use std::env;
 use std::fs;
 use std::io::Read;
 fn main() {
-    //  You can use print statements as follows for debugging, they'll be visible when running tests.
-    println!("Logs from your program will appear here!");
+    // println!("Logs from your program will appear here!");
 
-    // Uncomment this block to pass the first stage
     let args: Vec<String> = env::args().collect();
     if args[1] == "init" {
         fs::create_dir(".git").unwrap();
@@ -16,16 +14,13 @@ fn main() {
         fs::write(".git/HEAD", "ref: refs/heads/main\n").unwrap();
         println!("Initialized git directory")
     } else if args[1] == "cat-file" {
-        // cat-file -p <blob_sha>
         if args[2] == "-p" {
             let sha = &args[3];
             let content = read_blob_object(sha);
             println!("{}", content);
         }
+    }
 }
-}
-
-    
 
 fn read_blob_object(sha: &str) -> String {
     let dir = &sha[0..2];
@@ -41,5 +36,7 @@ fn read_blob_object(sha: &str) -> String {
     let mut decompressed = ZlibDecoder::new(&compressed[..]);
     let mut content = Vec::new();
     decompressed.read_to_end(&mut content).unwrap();
-    String::from_utf8(content).unwrap()
+    let content_str = String::from_utf8(content).unwrap();
+    let null_index = content_str.find('\0').unwrap();
+    content_str[(null_index + 1)..].to_string()
 }

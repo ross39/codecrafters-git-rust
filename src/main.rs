@@ -40,20 +40,10 @@ fn main() {
 }
 
 fn read_blob_object(sha: &str) -> String {
-    let dir = &sha[0..2];
-    let filename = &sha[2..];
-    let path = format!(".git/objects/{}/{}", dir, filename);
-    let compressed = match fs::read(&path) {
-        Ok(content) => content,
-        Err(e) => {
-            eprintln!("Error reading file {}: {}", path, e);
-            std::process::exit(1);
-        }
-    };
+    let path = format!(".git/objects/{}/{}", &sha[0..2], &sha[2..]);
+    let compressed = fs::read(&path).unwrap_or_else(|e| panic!("Error reading file {}: {}", path, e));
     let mut decompressed = ZlibDecoder::new(&compressed[..]);
     let mut content = Vec::new();
     decompressed.read_to_end(&mut content).unwrap();
-    let content_str = String::from_utf8(content).unwrap();
-    let null_index = content_str.find('\0').unwrap();
-    content_str[(null_index + 1)..].to_string()
+    String::from_utf8(content).unwrap().splitn(2, '\0').nth(1).unwrap().to_string()
 }

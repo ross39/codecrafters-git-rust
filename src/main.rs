@@ -27,9 +27,10 @@ fn main() {
 
     
 
-// This funcion is used to read a git blob object
 fn read_blob_object(sha: &str) -> String {
-    let path = format!(".git/objects/{}", sha);
+    let dir = &sha[0..2];
+    let filename = &sha[2..];
+    let path = format!(".git/objects/{}/{}", dir, filename);
     let compressed = match fs::read(&path) {
         Ok(content) => content,
         Err(e) => {

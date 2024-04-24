@@ -30,7 +30,13 @@ fn main() {
 // This funcion is used to read a git blob object
 fn read_blob_object(sha: &str) -> String {
     let path = format!(".git/objects/{}", sha);
-    let compressed = fs::read(path).unwrap();
+    let compressed = match fs::read(&path) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("Error reading file {}: {}", path, e);
+            std::process::exit(1);
+        }
+    };
     let mut decompressed = ZlibDecoder::new(&compressed[..]);
     let mut content = Vec::new();
     decompressed.read_to_end(&mut content).unwrap();

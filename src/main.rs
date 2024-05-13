@@ -17,6 +17,11 @@ enum Command {
         pretty: bool,
         object: String,
     },
+    HashObject {
+        #[clap(short, long)]
+        pretty: bool,
+        object: String,
+    },
 }
 
 fn main() {
@@ -36,14 +41,45 @@ fn main() {
                 print!("{}", content);
             }
         }
+        Command::HashObject { pretty, object } => {
+            if pretty {
+                let sha = create_blob_object(&object);
+                println!("{}", sha);
+            }
+        }
     }
 }
 
 fn read_blob_object(sha: &str) -> String {
     let path = format!(".git/objects/{}/{}", &sha[0..2], &sha[2..]);
-    let compressed = fs::read(&path).unwrap_or_else(|e| panic!("Error reading file {}: {}", path, e));
+    let compressed =
+        fs::read(&path).unwrap_or_else(|e| panic!("Error reading file {}: {}", path, e));
     let mut decompressed = ZlibDecoder::new(&compressed[..]);
     let mut content = Vec::new();
     decompressed.read_to_end(&mut content).unwrap();
-    String::from_utf8(content).unwrap().splitn(2, '\0').nth(1).unwrap().to_string()
+    String::from_utf8(content)
+        .unwrap()
+        .splitn(2, '\0')
+        .nth(1)
+        .unwrap()
+        .to_string()
+}
+
+fn create_blob_object(file: &str) -> String {
+    //implement support for creating blob object using the gi hash-object command
+    //and return the sha of the created object
+    let output = std::process::Command::new("git")
+        .args(&["hash-object", "-w", &file])
+        .output()
+        .expect("failed to execute process");
+
+    if !output.status.success() {
+        eprint!(
+            "git command failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        std::process::exit(1);
+    }
+
+    String::from_utf8(output.stdout).unwrap().trim().to_string()
 }

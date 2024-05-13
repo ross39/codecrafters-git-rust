@@ -19,6 +19,7 @@ enum Command {
     },
     HashObject {
         #[clap(short, long)]
+        write: bool,
         object: String,
     },
 }
@@ -40,9 +41,11 @@ fn main() {
                 print!("{}", content);
             }
         }
-        Command::HashObject { object } => {
-            let sha = create_blob_object(&object);
-            println!("{}", sha);
+        Command::HashObject { write, object } => {
+            if write {
+                let sha = create_blob_object(&object);
+                println!("{}", sha);
+            }
         }
     }
 }

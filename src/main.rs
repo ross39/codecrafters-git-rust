@@ -19,7 +19,6 @@ enum Command {
     },
     HashObject {
         #[clap(short, long)]
-        pretty: bool,
         object: String,
     },
 }
@@ -41,11 +40,9 @@ fn main() {
                 print!("{}", content);
             }
         }
-        Command::HashObject { pretty, object } => {
-            if pretty {
-                let sha = create_blob_object(&object);
-                println!("{}", sha);
-            }
+        Command::HashObject { object } => {
+            let sha = create_blob_object(&object);
+            println!("{}", sha);
         }
     }
 }

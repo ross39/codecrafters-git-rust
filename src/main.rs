@@ -22,6 +22,11 @@ enum Command {
         write: bool,
         object: String,
     },
+    LsTree {
+        //implement ls-tree command
+        #[clap(name = "treeish")]
+        treeish: String,
+    },
 }
 
 fn main() {
@@ -47,7 +52,27 @@ fn main() {
                 println!("{}", sha);
             }
         }
+        Command::LsTree { treeish } => {
+            inspect_tree(treeish);
+        }
     }
+}
+
+fn inspect_tree(treeish: String) -> String {
+    let output = std::process::Command::new("git")
+        .args(&["ls-tree", &treeish])
+        .output()
+        .expect("failed to execute process");
+
+    if !output.status.success() {
+        eprint!(
+            "git command failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        std::process::exit(1);
+    }
+
+    String::from_utf8(output.stdout).unwrap()
 }
 
 fn read_blob_object(sha: &str) -> String {

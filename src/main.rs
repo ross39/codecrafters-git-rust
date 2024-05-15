@@ -3,6 +3,11 @@ use flate2::read::ZlibDecoder;
 use std::fs;
 use std::io::Read;
 
+const GIT_DIR: &str = ".git";
+const GIT_OBJECTS_DIR: &str = ".git/objects";
+const GIT_HEAD_FILE: &str = ".git/HEAD";
+const GIT_REFS_DIR: &str = ".git/refs";
+const GIT_HEAD_REF: &str = "ref: refs/heads/main\n";
 #[derive(Parser)]
 struct Opt {
     #[clap(subcommand)]
@@ -11,51 +16,85 @@ struct Opt {
 
 #[derive(Parser)]
 enum Command {
-    Init,
-    CatFile {
-        #[clap(short, long)]
-        pretty: bool,
-        object: String,
-    },
-    HashObject {
-        #[clap(short, long)]
-        write: bool,
-        object: String,
-    },
-    LsTree {
-        //implement ls-tree command
-        #[clap(name = "treeish")]
-        treeish: String,
-    },
+    Init(InitCommand),
+    CatFile(CatFileCommand),
+    HashObject(HashObjectCommand),
+    LsTree(LsTreeCommand),
 }
 
-fn main() {
+#[derive(Parser)]
+struct InitCommand {}
+
+#[derive(Parser)]
+struct CatFileCommand {
+    #[clap(short, long)]
+    pretty: bool,
+    object: String,
+}
+
+#[derive(Parser)]
+struct HashObjectCommand {
+    #[clap(short, long)]
+    write: bool,
+    object: String,
+}
+
+#[derive(Parser)]
+struct LsTreeCommand {
+    #[clap(long)]
+    name_only: bool,
+    #[clap(name = "treeish")]
+    treeish: String,
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let opt = Opt::parse();
 
     match opt.command {
-        Command::Init => {
-            fs::create_dir(".git").unwrap();
-            fs::create_dir(".git/objects").unwrap();
-            fs::create_dir(".git/refs").unwrap();
-            fs::write(".git/HEAD", "ref: refs/heads/main\n").unwrap();
-            println!("Initialized git directory");
-        }
-        Command::CatFile { pretty, object } => {
-            if pretty {
-                let content = read_blob_object(&object);
-                print!("{}", content);
-            }
-        }
-        Command::HashObject { write, object } => {
-            if write {
-                let sha = create_blob_object(&object);
-                println!("{}", sha);
-            }
-        }
-        Command::LsTree { treeish } => {
-            inspect_tree(treeish);
-        }
+        Command::Init(_) => init(),
+        Command::CatFile(cmd) => cat_file(cmd),
+        Command::HashObject(cmd) => hash_object(cmd),
+        Command::LsTree(cmd) => ls_tree(cmd),
     }
+}
+
+fn init() -> Result<(), Box<dyn std::error::Error>> {
+    fs::create_dir(GIT_DIR)?;
+    fs::create_dir(GIT_OBJECTS_DIR)?;
+    fs::create_dir(GIT_REFS_DIR)?;
+    fs::write(GIT_HEAD_FILE, GIT_HEAD_REF)?;
+    Ok(())
+}
+
+fn cat_file(cmd: CatFileCommand) -> Result<(), Box<dyn std::error::Error>> {
+    if cmd.pretty {
+        let object = read_blob_object(&cmd.object);
+        print!("{}", object);
+    } 
+    Ok(())
+}
+
+fn hash_object(cmd: HashObjectCommand) -> Result<(), Box<dyn std::error::Error>> {
+    if cmd.write {
+        let sha = create_blob_object(&cmd.object);
+        println!("{}", sha);
+    }
+    Ok(())
+}
+
+fn ls_tree(cmd: LsTreeCommand) -> Result<(), Box<dyn std::error::Error>> {
+    let output = inspect_tree(cmd.treeish);
+    if cmd.name_only {
+        for line in output.lines() {
+            let parts: Vec<&str> = line.split('\t').collect();
+            if parts.len() == 2 {
+                println!("{}", parts[1]);
+            }
+        }
+    } else {
+        println!("{}", output);
+    }
+    Ok(())
 }
 
 fn inspect_tree(treeish: String) -> String {
